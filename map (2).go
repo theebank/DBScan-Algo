@@ -11,6 +11,7 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -77,12 +78,31 @@ func main() {
 	// This is the non-concurrent procedural version
 	// It should be replaced by a producer thread that produces jobs (partition to be clustered)
 	// And by consumer threads that clusters partitions
-	for j := 0; j < N; j++ {
-		for i := 0; i < N; i++ {
+	// for j := 0; j < N; j++ {
+	// 	for i := 0; i < N; i++ {
 
-			DBscan(grid[i][j], MinPts, eps, i*10000000+j*1000000)
+	// 		DBscan(grid[i][j], MinPts, eps, i*10000000+j*1000000)
+	// 	}
+	// }
+	jobs := make(chan [2]int, N*N)
+
+	var mutex sync.WaitGroup
+	threadcount := 16
+	mutex.Add(threadcount)
+	for i := 0; i <= threadcount; i++ {
+		go Worker(jobs, grid, &mutex)
+	}
+
+	for i := 0; i < N; i++ {
+		for j := 0; j < N; j++ {
+			var array [2]int
+			array[0] = i
+			array[1] = j
+			jobs <- array
 		}
 	}
+	close(jobs)
+	mutex.Wait()
 
 	// Parallel DBSCAN STEP 2.
 	// Apply DBSCAN on each partition
@@ -94,6 +114,21 @@ func main() {
 
 	end := time.Now()
 	fmt.Printf("\nExecution time: %s of %d points\n", end.Sub(start), partitionSize)
+}
+
+//Worker / Consumer function
+func Worker(jobs <-chan [2]int, coords [N][N][]LabelledGPScoord, done *sync.WaitGroup) {
+	for {
+		itr, more := <-jobs
+		if more {
+			i := itr[0]
+			j := itr[1]
+			DBscan(coords[i][j], MinPts, eps, i*10000000+j*1000000)
+		} else {
+			done.Done()
+			return
+		}
+	}
 }
 
 // Applies DBSCAN algorithm on LabelledGPScoord points
