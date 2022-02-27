@@ -1,0 +1,13 @@
+N,C = 2,4 | time = Execution time: 7m53.9656774s of 198194 points
+N,C = 4,4 | time = Execution time: 2m29.9389923s of 206102 points
+N,C = 4, 10 | time = Execution time: 2m30.5322907s of 206102 points
+N,C = 10,4 | time = Execution time: 18.3247648s of 222488 points
+N,C = 10,10 | time = Execution time: 15.645164s of 222488 points
+N,C = 10,50 | time = Execution time: 15.5001656s of 222488 points
+N,C = 20,10 | time = Execution time: 4.9870284s of 255300 points
+N,C = 20,50 | time = Execution time: 4.62078s of 255300 points
+N,C = 20,200 | time = Execution time: 4.5061157s of 255300 points
+
+
+running with AMD Ryzen 7 5700G with Radeon Graphics 3.80 GHz
+             8 cores, 16 logical processors

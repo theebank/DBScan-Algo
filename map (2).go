@@ -30,7 +30,8 @@ type Cluster struct {
 	ID     int
 }
 
-const N int = 4
+const N int = 20
+const threadcount int = 200
 const MinPts int = 5
 const eps float64 = 0.0003
 const filename string = "yellow_tripdata_2009-01-15_9h_21h_clean.csv"
@@ -90,14 +91,15 @@ func main() {
 	jobs := make(chan [2]int, N*N)
 
 	var mutex sync.WaitGroup
-	threadcount := 16
-	mutex.Add(threadcount)
+
 	for i := 0; i <= threadcount; i++ {
+		mutex.Add(1)
 		go Worker(jobs, grid, &mutex)
 	}
 
 	for i := 0; i < N; i++ {
 		for j := 0; j < N; j++ {
+			//fmt.Println("sending %f-%f", i, j)
 			var array [2]int
 			array[0] = i
 			array[1] = j
@@ -118,12 +120,16 @@ func main() {
 //Worker / Consumer function
 func Worker(jobs <-chan [2]int, coords [N][N][]LabelledGPScoord, done *sync.WaitGroup) {
 	for {
+
 		itr, more := <-jobs
 		if more {
+
 			i := itr[0]
 			j := itr[1]
+			//fmt.Println("Receiving %f-%f", i, j)
 			DBscan(coords[i][j], MinPts, eps, i*10000000+j*1000000)
 		} else {
+
 			done.Done()
 			return
 		}
@@ -143,6 +149,7 @@ func DBscan(coords []LabelledGPScoord, MinPts int, eps float64, offset int) (ncl
 
 	//cluster := Cluster{[]LabelledGPScoord{}, 0}
 	//for each Point P in database DB{
+
 	for _, P := range coords {
 		if P.Label != 0 {
 			continue
@@ -163,6 +170,7 @@ func DBscan(coords []LabelledGPScoord, MinPts int, eps float64, offset int) (ncl
 			// cluster.ID = nclusters+offset
 			var S []LabelledGPScoord
 			copy(S, N)
+
 			//for each point Q in S{
 			for i := 0; i < len(S); i++ {
 				Q := S[i]
