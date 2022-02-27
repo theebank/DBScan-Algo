@@ -2,10 +2,6 @@
 // Winter 2022
 // Robert Laganiere, uottawa.ca
 
-//Theeban Kumaresan
-//300062377
-//CSI2120 Winter 2022
-
 package main
 
 import (
@@ -28,10 +24,9 @@ type LabelledGPScoord struct {
 	ID    int // point ID
 	Label int // cluster ID
 }
-
 type Cluster struct {
 	coords []LabelledGPScoord
-	offset int
+	ID     int
 }
 
 const N int = 4
@@ -82,15 +77,12 @@ func main() {
 	// This is the non-concurrent procedural version
 	// It should be replaced by a producer thread that produces jobs (partition to be clustered)
 	// And by consumer threads that clusters partitions
-
 	for j := 0; j < N; j++ {
 		for i := 0; i < N; i++ {
 
 			DBscan(grid[i][j], MinPts, eps, i*10000000+j*1000000)
 		}
 	}
-
-	// DBscan(grid[0][3], MinPts, eps, 0*10000000+3*1000000)
 
 	// Parallel DBSCAN STEP 2.
 	// Apply DBSCAN on each partition
@@ -111,52 +103,50 @@ func main() {
 // returns number of clusters found
 func DBscan(coords []LabelledGPScoord, MinPts int, eps float64, offset int) (nclusters int) {
 
+	// *** fake code: to be rewritten
+	time.Sleep(3)
 	nclusters = 0
-	//for each point P in database DB {
-	for _, Point := range coords {
-		//if label(P) ≠ undefined then continue
-		if Point.Label != 0 {
+
+	//cluster := Cluster{[]LabelledGPScoord{}, 0}
+	//for each Point P in database DB{
+	for _, P := range coords {
+		if P.Label != 0 {
 			continue
 		}
-		//Neighbors N := RangeQuery(DB, distFunc, P, eps)
-		var neighbours = RangeQuery(coords, Point, eps)
-		//if |N| < minPts then {
-		if len(neighbours) < MinPts {
+		//Neighbors N := RangeQuery(DB,distFunc, P, eps)
+		N := RangeQuery(coords, P, eps)
+		//if |N| <minPts then {
+		if len(N) < MinPts {
 			//label(P) := Noise
-			Point.Label = -1
+			P.Label = -1
 		} else {
-			//C := C + 1
-			nclusters++
+			//C := C+1
+			nclusters = nclusters + 1
 			//label(P) := C
-			cluster := Cluster{[]LabelledGPScoord{}, offset}
-			Point.Label = nclusters
-			cluster.coords = append(cluster.coords, Point)
-			cluster.offset = offset + nclusters
-			//SeedSet S := N \ {P}
-			seedSet := make([]LabelledGPScoord, len(neighbours))
-			copy(seedSet, neighbours)
-			//for each point Q in S {
-
-			for _, Q := range seedSet {
-
-				//if label(Q) = Noise then label(Q) := C
+			P.Label = nclusters + offset
+			// var cluster Cluster
+			// cluster.coords = append(cluster.coords, P)
+			// cluster.ID = nclusters+offset
+			var S []LabelledGPScoord
+			copy(S, N)
+			//for each point Q in S{
+			for i := 0; i < len(S); i++ {
+				Q := S[i]
+				//if Label(Q) = Noise then Label(Q) := C
 				if Q.Label == -1 {
-					Q.Label = cluster.offset
-					cluster.coords = append(cluster.coords, Q)
-
-				} else if Q.Label == 0 { //if label(Q) != undefined then continue
-
+					Q.Label = nclusters + offset
+					//if label(Q) != undefined then continue
+				} else if Q.Label == 0 {
 					//label(Q) := C
-					Q.Label = cluster.offset
-					cluster.coords = append(cluster.coords, Q)
-					//Neighbors N := RangeQuery(DB, distFunc, Q, eps)
-					QNeighbours := RangeQuery(coords, Q, eps)
-					//if |N| ≥ minPts then {
-					if len(QNeighbours)+1 >= MinPts {
-						// := S ∪ N
-						for _, iterator := range QNeighbours {
-							if !(contains(seedSet, iterator)) {
-								seedSet = append(seedSet, iterator)
+					Q.Label = nclusters + offset
+					//Neighbors N := RangeQuery(DB,distfunc,Q,eps)
+					QN := RangeQuery(coords, Q, eps)
+					//if |N| >= minPts then
+					if len(QN) >= MinPts {
+						//S := S u N
+						for _, Piterator := range QN {
+							if !contains(S, Piterator) {
+								S = append(S, Piterator)
 							}
 						}
 
@@ -164,7 +154,6 @@ func DBscan(coords []LabelledGPScoord, MinPts int, eps float64, offset int) (ncl
 				}
 
 			}
-
 		}
 
 	}
@@ -177,36 +166,30 @@ func DBscan(coords []LabelledGPScoord, MinPts int, eps float64, offset int) (ncl
 
 	return nclusters
 }
+func RangeQuery(coords []LabelledGPScoord, Initial LabelledGPScoord, eps float64) (neighbours []LabelledGPScoord) {
 
-func contains(seedSet []LabelledGPScoord, i LabelledGPScoord) (result bool) {
-	for _, j := range seedSet {
-		if j == i {
+	for _, point := range coords {
+		if distancecalc(Initial, point) <= eps && point != Initial {
+			neighbours = append(neighbours, point)
+		}
+	}
+	return neighbours
+}
+func distancecalc(p1 LabelledGPScoord, p2 LabelledGPScoord) (result float64) {
+	var deltaLat = p2.lat - p1.lat
+	var deltaLon = p2.long - p1.long
+	result = math.Sqrt(math.Pow(deltaLat, 2) + math.Pow(deltaLon, 2))
+	return result
+}
+func contains(list []LabelledGPScoord, point LabelledGPScoord) bool {
+	for _, i := range list {
+		if i == point {
 			return true
 		}
 	}
 	return false
-}
-
-func distancecalc(p1 LabelledGPScoord, p2 LabelledGPScoord) (result float64) {
-	var deltaLat = p2.GPScoord.lat - p1.GPScoord.lat
-	var deltaLon = p2.GPScoord.long - p1.GPScoord.long
-	result = math.Sqrt(math.Pow(deltaLat, 2) + math.Pow(deltaLon, 2))
-	return result
-}
-
-func RangeQuery(coords []LabelledGPScoord, initial LabelledGPScoord, eps float64) (closePts []LabelledGPScoord) {
-	closePts = make([]LabelledGPScoord, 0)
-	for _, gpscord := range coords {
-		if distancecalc(initial, gpscord) <= eps && gpscord != initial {
-			closePts = append(closePts, gpscord)
-		}
-	}
-	return closePts
-}
-
-// reads a csv file of trip records and returns a slice of the LabelledGPScoord of the pickup locations
-// and the minimum and maximum GPS coordinates
-func readCSVFile(filename string) (coords []LabelledGPScoord, minPt GPScoord, maxPt GPScoord) {
+ts
+oords []LabelledGPScoord, minPt GPScoord, maxPt GPScoord) {
 
 	coords = make([]LabelledGPScoord, 0, 5000)
 
