@@ -144,9 +144,9 @@ func DBscan(coords []LabelledGPScoord, MinPts int, eps float64, offset int) (ncl
 					//if |N| >= minPts then
 					if len(QN) >= MinPts {
 						//S := S u N
-						for _, Piterator := range QN {
-							if !contains(S, Piterator) {
-								S = append(S, Piterator)
+						for _, iterator := range QN {
+							if !contains(S, iterator) {
+								S = append(S, iterator)
 							}
 						}
 
@@ -188,8 +188,11 @@ func contains(list []LabelledGPScoord, point LabelledGPScoord) bool {
 		}
 	}
 	return false
-ts
-oords []LabelledGPScoord, minPt GPScoord, maxPt GPScoord) {
+}
+
+// reads a csv file of trip records and returns a slice of the LabelledGPScoord of the pickup locations
+// and the minimum and maximum GPS coordinates
+func readCSVFile(filename string) (coords []LabelledGPScoord, minPt GPScoord, maxPt GPScoord) {
 
 	coords = make([]LabelledGPScoord, 0, 5000)
 
