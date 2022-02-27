@@ -84,6 +84,9 @@ func main() {
 	// 		DBscan(grid[i][j], MinPts, eps, i*10000000+j*1000000)
 	// 	}
 	// }
+	// Parallel DBSCAN STEP 2.
+	// Apply DBSCAN on each partition
+	// ...
 	jobs := make(chan [2]int, N*N)
 
 	var mutex sync.WaitGroup
@@ -103,10 +106,6 @@ func main() {
 	}
 	close(jobs)
 	mutex.Wait()
-
-	// Parallel DBSCAN STEP 2.
-	// Apply DBSCAN on each partition
-	// ...
 
 	// Parallel DBSCAN step 3.
 	// merge clusters
